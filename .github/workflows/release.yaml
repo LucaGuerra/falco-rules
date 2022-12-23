@@ -1,0 +1,33 @@
+name: Release Rulesfile
+
+on:
+  push:
+    tags:
+      # prefix + semver tag
+      - '^([a-z]+[a-z0-9_\-]*)-((0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?)$'
+
+jobs:
+  release-rulesfile:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Rules
+        uses: actions/checkout@v3
+
+      - name: Setup Golang
+        uses: actions/setup-go@v3
+        with:
+          go-version: '^1.19'
+
+      - name: Build registry artifact tool
+        working-directory: build/registry
+        run: go build -o rules-registry ./...
+
+      - name: Upload OCI artifacts to GitHub packages
+        env:
+          REGISTRY: ghcr.io
+          REGISTRY_USER: ${{ github.repository_owner }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_GITHUB: https://github.com/${{ github.repository_owner }}/plugins.git
+        working-directory: build/registry
+        run: ./rules-registry push-to-oci ../../registry.yaml ${{github.ref_name}}
