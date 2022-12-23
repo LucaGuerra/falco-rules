@@ -59,7 +59,7 @@ func doPushToOCI(registryFilename, gitTag string) error {
 	}
 
 	client := authn.NewClient(cred)
-	ociRepoRef := fmt.Sprintf("%s/%s/%s", registry, RulesfileNamespace, pt.Name)
+	ociRepoRef := fmt.Sprintf("%s/%s/%s/%s", registry, user, RulesfileNamespace, pt.Name)
 
 	reg, err := loadRegistryFromFile(registryFilename)
 	if err != nil {

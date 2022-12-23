@@ -28,6 +28,6 @@ jobs:
           REGISTRY: ghcr.io
           REGISTRY_USER: ${{ github.repository_owner }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO_GITHUB: https://github.com/${{ github.repository_owner }}/plugins.git
+          REPO_GITHUB: ${{ github.server_url }}/${{ github.repository }}.git
         working-directory: build/registry
         run: ./rules-registry push-to-oci ../../registry.yaml ${{github.ref_name}}
