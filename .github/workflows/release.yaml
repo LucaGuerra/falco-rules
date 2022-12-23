@@ -23,12 +23,14 @@ jobs:
         working-directory: build/registry
         run: go build -o rules-registry ./...
 
+      - name: Get lowercase OCI repo prefix
+        run: |
+          echo "OCI_REPO_PREFIX=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+
       - name: Upload OCI artifacts to GitHub packages
         env:
-          REGISTRY: ghcr.io
           REGISTRY_USER: ${{ github.repository_owner }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPO_URL: ${{ github.server_url }}/${{ github.repository }}.git
-          OCI_REPO_PREFIX: ghcr.io/${{ github.repository.lowercase }}
         working-directory: build/registry
         run: ./rules-registry push-to-oci ../../registry.yaml ${{github.ref_name}}
