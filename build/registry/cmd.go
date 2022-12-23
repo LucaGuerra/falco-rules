@@ -70,10 +70,8 @@ func doPushToOCI(registryFilename, gitTag string) error {
 		return fmt.Errorf("could not find rulesfile %s in registry", pt.Name)
 	}
 
-	existingTags, err := oci.Tags(context.Background(), ociRepoRef, client)
-	if err != nil {
-		return fmt.Errorf("could not list tags for repository %s: %w", ociRepoRef, err)
-	}
+	existingTags, _ := oci.Tags(context.Background(), ociRepoRef, client)
+	// note that this can generate an error if the repository does not exist yet, so we can proceed
 
 	tagsToUpdate := ociTagsToUpdate(pt.Version(), existingTags)
 
