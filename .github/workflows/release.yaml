@@ -3,8 +3,8 @@ name: Release Rulesfile
 on:
   push:
     tags:
-      # prefix + semver tag
-      - '^([a-z]+[a-z0-9_\-]*)-((0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?)$'
+      # potential semver
+      - '[a-z]*[0-9]+.[0-9]+.[0-9]+*'
 
 jobs:
   release-rulesfile:
