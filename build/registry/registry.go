@@ -78,12 +78,12 @@ func loadRegistryFromFile(fname string) (*Registry, error) {
 		return nil, err
 	}
 
-	var registry *Registry
+	var registry Registry
 
-	err = yaml.Unmarshal(yamlFile, registry)
+	err = yaml.Unmarshal(yamlFile, &registry)
 	if err != nil {
 		return nil, err
 	}
 
-	return registry, nil
+	return &registry, nil
 }
