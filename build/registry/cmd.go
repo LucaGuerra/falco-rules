@@ -152,7 +152,7 @@ func doUpdateIndex(registryFile, indexFile string) error {
 func main() {
 	checkCmd := &cobra.Command{
 		Use:                   "check <filename>",
-		Short:                 "Verify the correctness of a plugin registry YAML file",
+		Short:                 "Verify the correctness of a registry YAML file",
 		Args:                  cobra.ExactArgs(1),
 		DisableFlagsInUseLine: true,
 		RunE: func(c *cobra.Command, args []string) error {
