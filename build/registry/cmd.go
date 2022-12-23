@@ -2,14 +2,19 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
+	"oras.land/oras-go/v2/errdef"
+	"oras.land/oras-go/v2/registry/remote"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/falcosecurity/falcoctl/pkg/oci"
 	"github.com/falcosecurity/falcoctl/pkg/oci/authn"
 	"github.com/spf13/cobra"
-	"log"
 	"oras.land/oras-go/v2/registry/remote/auth"
-	"os"
-	"path/filepath"
 )
 
 const (
@@ -71,7 +76,7 @@ func doPushToOCI(registryFilename, gitTag string) error {
 	}
 
 	existingTags, _ := oci.Tags(context.Background(), ociRepoRef, client)
-	// note that this can generate an error if the repository does not exist yet, so we can proceed
+	// note that the call above can generate an error if the repository does not exist yet, so we can proceed
 
 	tagsToUpdate := ociTagsToUpdate(pt.Version(), existingTags)
 
@@ -94,6 +99,56 @@ func doPushToOCI(registryFilename, gitTag string) error {
 	return nil
 }
 
+func rulesOciRepos(registryEntries *Registry, ociRepoPrefix string) (map[string]string, error) {
+	ociClient := authn.NewClient(auth.EmptyCredential)
+	ociEntries := make(map[string]string)
+
+	for _, entry := range registryEntries.Rulesfiles {
+		ref := ociRepoPrefix + "/" + entry.Name
+		repo, err := remote.NewRepository(ref)
+		if err != nil {
+			return nil, fmt.Errorf("unable to create repo for ref %q: %w", ref, err)
+		}
+		repo.Client = ociClient
+
+		_, _, err = repo.FetchReference(context.Background(), ref+":latest")
+		if err != nil && (errors.Is(err, errdef.ErrNotFound) || strings.Contains(err.Error(), "requested access to the resource is denied")) {
+			continue
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("unable to fetch reference for %q: %w", ref+":latest", err)
+		}
+
+		ociEntries[entry.Name] = ref
+	}
+
+	return ociEntries, nil
+}
+
+func doUpdateIndex(registryFile, indexFile string) error {
+	var ociPrefix string
+	var found bool
+
+	if ociPrefix, found = os.LookupEnv(OCIRepoPrefixEnv); !found {
+		return fmt.Errorf("environment variable with key %q not found, please set it before running this tool", OCIRepoPrefixEnv)
+	}
+
+	registryEntries, err := loadRegistryFromFile(registryFile)
+	if err != nil {
+		return err
+	}
+	ociEntries, err := rulesOciRepos(registryEntries, ociPrefix)
+	if err != nil {
+		return err
+	}
+	if err := registryEntries.Validate(); err != nil {
+		return err
+	}
+
+	return upsertIndexFile(registryEntries, ociEntries, indexFile)
+}
+
 func main() {
 	checkCmd := &cobra.Command{
 		Use:                   "check <filename>",
@@ -102,6 +157,16 @@ func main() {
 		DisableFlagsInUseLine: true,
 		RunE: func(c *cobra.Command, args []string) error {
 			return doCheck(args[0])
+		},
+	}
+
+	updateIndexCmd := &cobra.Command{
+		Use:                   "update-index <registryFilename> <indexFilename>",
+		Short:                 "Update an index file for artifacts distribution using registry data",
+		Args:                  cobra.ExactArgs(2),
+		DisableFlagsInUseLine: true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return doUpdateIndex(args[0], args[1])
 		},
 	}
 
@@ -120,6 +185,7 @@ func main() {
 		Version: "0.1.0",
 	}
 	rootCmd.AddCommand(checkCmd)
+	rootCmd.AddCommand(updateIndexCmd)
 	rootCmd.AddCommand(pushToOCI)
 
 	if err := rootCmd.Execute(); err != nil {

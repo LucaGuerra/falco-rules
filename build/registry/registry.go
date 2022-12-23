@@ -38,6 +38,7 @@ type Rulesfile struct {
 	} `yaml:"maintainers"`
 	Keywords []string `yaml:"keywords"`
 	Path     string   `yaml:"path"`
+	URL      string   `yaml:"url"`
 	License  string   `yaml:"license"`
 	Reserved bool     `yaml:"reserved"`
 }
