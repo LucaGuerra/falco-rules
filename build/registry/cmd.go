@@ -81,7 +81,7 @@ func doPushToOCI(registryFilename, gitTag string) error {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	tgzFile := filepath.Join(tmpDir, filepath.Base(rulesfileInfo.Path))
+	tgzFile := filepath.Join(tmpDir, filepath.Base(rulesfileInfo.Path)+".tar.gz")
 	if err = tarGzSingleFile(tgzFile, rulesfileInfo.Path); err != nil {
 		return fmt.Errorf("could not compress %s: %w", rulesfileInfo.Path, err)
 	}
