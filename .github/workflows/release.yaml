@@ -32,5 +32,4 @@ jobs:
           REGISTRY_USER: ${{ github.repository_owner }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPO_URL: ${{ github.server_url }}/${{ github.repository }}.git
-        working-directory: build/registry
-        run: ./rules-registry push-to-oci ../../registry.yaml ${{github.ref_name}}
+        run: build/registry/rules-registry push-to-oci registry.yaml ${{github.ref_name}}
