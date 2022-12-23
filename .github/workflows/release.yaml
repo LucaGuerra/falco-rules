@@ -25,7 +25,7 @@ jobs:
 
       - name: Get lowercase OCI repo prefix
         run: |
-          echo "OCI_REPO_PREFIX=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+          echo "OCI_REPO_PREFIX=ghcr.io/${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
 
       - name: Upload OCI artifacts to GitHub packages
         env:
