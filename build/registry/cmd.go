@@ -22,9 +22,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/falcosecurity/falcoctl/pkg/oci"
 	"github.com/falcosecurity/falcoctl/pkg/oci/authn"
 	"github.com/spf13/cobra"
@@ -38,6 +41,9 @@ const (
 	RegistryUserEnv  = "REGISTRY_USER"
 	OCIRepoPrefixEnv = "OCI_REPO_PREFIX"
 	RepoGithubEnv    = "GITHUB_REPO_URL"
+	S3BucketEnv      = "AWS_S3_BUCKET"
+	S3PrefixEnv      = "AWS_S3_PREFIX"
+	S3RegionEnv      = "AWS_S3_REGION"
 )
 
 func doCheck(fileName string) error {
@@ -46,6 +52,62 @@ func doCheck(fileName string) error {
 		return err
 	}
 	return registry.Validate()
+}
+
+func doUploadToS3(registryFilename, gitTag string) error {
+	var s3prefix, s3bucket, s3region string
+	var found bool
+
+	if s3prefix, found = os.LookupEnv(S3PrefixEnv); !found {
+		return fmt.Errorf("environment variable with key %q not found, please set it before running this tool", S3PrefixEnv)
+	}
+
+	if s3bucket, found = os.LookupEnv(S3BucketEnv); !found {
+		return fmt.Errorf("environment variable with key %q not found, please set it before running this tool", S3BucketEnv)
+	}
+
+	if s3region, found = os.LookupEnv(S3RegionEnv); !found {
+		return fmt.Errorf("environment variable with key %q not found, please set it before running this tool", S3RegionEnv)
+	}
+
+	s3s, err := session.NewSession(&aws.Config{Region: aws.String(s3region)})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	pt, err := parseGitTag(gitTag)
+	if err != nil {
+		return err
+	}
+
+	reg, err := loadRegistryFromFile(registryFilename)
+	if err != nil {
+		return fmt.Errorf("could not read registry from %s: %w", registryFilename, err)
+	}
+
+	rulesfileInfo := reg.RulesfileByName(pt.Name)
+	if rulesfileInfo == nil {
+		return fmt.Errorf("could not find rulesfile %s in registry", pt.Name)
+	}
+
+	tmpDir, err := os.MkdirTemp("", "falco-artifacts-to-upload")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	tgzFile := filepath.Join(tmpDir, filepath.Base(rulesfileInfo.Path)+".tar.gz")
+	if err = tarGzSingleFile(tgzFile, rulesfileInfo.Path); err != nil {
+		return fmt.Errorf("could not compress %s: %w", rulesfileInfo.Path, err)
+	}
+	defer os.RemoveAll(tgzFile)
+
+	key := path.Join(s3prefix, gitTag+".tar.gz")
+	if err = s3UploadFile(s3s, s3bucket, tgzFile, key); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func doPushToOCI(registryFilename, gitTag string) error {
@@ -188,11 +250,21 @@ func main() {
 
 	pushToOCI := &cobra.Command{
 		Use:                   "push-to-oci <registryFilename> <gitTag>",
-		Short:                 "Push the rulesfile identified by the tag to the OCI repo",
+		Short:                 "Push the rulesfile identified by the tag to the OCI repo identified by the env variable OCI_REPO_PREFIX, authenticating via REGISTRY_USER/REGISTRY_TOKEN and linking to the sources via GITHUB_REPO_URL",
 		Args:                  cobra.ExactArgs(2),
 		DisableFlagsInUseLine: true,
 		RunE: func(c *cobra.Command, args []string) error {
 			return doPushToOCI(args[0], args[1])
+		},
+	}
+
+	uploadToS3 := &cobra.Command{
+		Use:                   "upload-to-s3 <registryFilename> <gitTag>",
+		Short:                 "Upload the rulesfile identified by the tag to the S3 bucket S3_BUCKET with prefix S3_PREFIX",
+		Args:                  cobra.ExactArgs(2),
+		DisableFlagsInUseLine: true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return doUploadToS3(args[0], args[1])
 		},
 	}
 
@@ -203,6 +275,7 @@ func main() {
 	rootCmd.AddCommand(checkCmd)
 	rootCmd.AddCommand(updateIndexCmd)
 	rootCmd.AddCommand(pushToOCI)
+	rootCmd.AddCommand(uploadToS3)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Printf("error: %s\n", err)
