@@ -13,11 +13,10 @@ import (
 )
 
 const (
-	RulesfileNamespace = "rules"
-	RegistryTokenEnv   = "REGISTRY_TOKEN"
-	RegistryUserEnv    = "REGISTRY_USER"
-	RegistryOCIEnv     = "REGISTRY"
-	RepoGithubEnv      = "REPO_GITHUB"
+	RegistryTokenEnv = "REGISTRY_TOKEN"
+	RegistryUserEnv  = "REGISTRY_USER"
+	OCIRepoPrefixEnv = "OCI_REPO_PREFIX"
+	RepoGithubEnv    = "GITHUB_REPO_URL"
 )
 
 func doCheck(fileName string) error {
@@ -29,7 +28,7 @@ func doCheck(fileName string) error {
 }
 
 func doPushToOCI(registryFilename, gitTag string) error {
-	var registry, repoGit, user, token string
+	var ociRepoPrefix, repoGit, user, token string
 	var found bool
 
 	if token, found = os.LookupEnv(RegistryTokenEnv); !found {
@@ -40,8 +39,8 @@ func doPushToOCI(registryFilename, gitTag string) error {
 		return fmt.Errorf("environment variable with key %q not found, please set it before running this tool", RegistryUserEnv)
 	}
 
-	if registry, found = os.LookupEnv(RegistryOCIEnv); !found {
-		return fmt.Errorf("environment variable with key %q not found, please set it before running this tool", RegistryOCIEnv)
+	if ociRepoPrefix, found = os.LookupEnv(OCIRepoPrefixEnv); !found {
+		return fmt.Errorf("environment variable with key %q not found, please set it before running this tool", OCIRepoPrefixEnv)
 	}
 
 	if repoGit, found = os.LookupEnv(RepoGithubEnv); !found {
@@ -59,7 +58,7 @@ func doPushToOCI(registryFilename, gitTag string) error {
 	}
 
 	client := authn.NewClient(cred)
-	ociRepoRef := fmt.Sprintf("%s/%s/%s/%s", registry, user, RulesfileNamespace, pt.Name)
+	ociRepoRef := fmt.Sprintf("%s/%s", ociRepoPrefix, pt.Name)
 
 	reg, err := loadRegistryFromFile(registryFilename)
 	if err != nil {
