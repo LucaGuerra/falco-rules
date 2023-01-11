@@ -104,7 +104,7 @@ func doUploadToS3(registryFilename, gitTag string) error {
 
 	key := path.Join(s3prefix, gitTag+".tar.gz")
 	if err = s3UploadFile(s3s, s3bucket, tgzFile, key); err != nil {
-		return err
+		return fmt.Errorf("could not upload %s to bucket %s, key %s: %w", tgzFile, s3bucket, key, err)
 	}
 
 	return nil
