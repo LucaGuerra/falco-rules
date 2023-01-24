@@ -12,7 +12,7 @@ jobs:
     env:
       AWS_S3_BUCKET: dig.lookslegit.org
       AWS_S3_PREFIX: rules
-      AWS_S3_REGION: us-west-1
+      AWS_S3_REGION: us-east-1
 
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
