@@ -163,6 +163,8 @@ func doPushToOCI(registryFilename, gitTag string) error {
 
 	tagsToUpdate := ociTagsToUpdate(pt.Version(), existingTags)
 
+	log.Printf("Updating repo %s with tags %v\n", ociRepoRef, tagsToUpdate)
+
 	tmpDir, err := os.MkdirTemp("", "falco-artifacts-to-upload")
 	if err != nil {
 		log.Fatal(err)
