@@ -13,6 +13,8 @@ require (
 	oras.land/oras-go/v2 v2.0.0-rc.3
 )
 
+replace github.com/falcosecurity/falcoctl => github.com/LucaGuerra/falcoctl v0.0.0-20230124205222-d359b27f079c
+
 require (
 	atomicgo.dev/cursor v0.1.1 // indirect
 	atomicgo.dev/keyboard v0.2.8 // indirect
