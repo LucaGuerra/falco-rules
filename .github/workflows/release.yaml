@@ -69,7 +69,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: "arn:aws:iam::292999226676:role/terraform-20230120142903096000000002"
+          role-to-assume: "arn:aws:iam::368293260341:role/RoleTestForGithubActions"
           aws-region: ${{ env.AWS_S3_REGION }}
 
       - name: Upload files to S3
